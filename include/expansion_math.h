@@ -5,11 +5,18 @@
 #ifndef EXPFLOAT_EXPANSION_MATH_H
 #define EXPFLOAT_EXPANSION_MATH_H
 
-#define S 16
+#if __NVCC__
+    #define FUNCTION_DECORATORS_HD __host__ __device__
+#else
+    #define FUNCTION_DECORATORS_HD
+#endif
+
+// #define S 16
 
 // @brief computes the sum of two single precision floating point values and computes
 // their double precision sum in the expansion form
 
+FUNCTION_DECORATORS_HD
 inline void
 fast_two_sum(float a, float b, float& x, float& y) {
     float v;
@@ -24,6 +31,7 @@ fast_two_sum(float a, float b, float& x, float& y) {
     }
 }
 
+FUNCTION_DECORATORS_HD
 inline void
 two_sum(float a, float b, float& x, float& y) {
     float av, bv, ar, br;
@@ -39,6 +47,7 @@ two_sum(float a, float b, float& x, float& y) {
     y = ar+ br;
 }
 
+FUNCTION_DECORATORS_HD
 inline void
 grow_expansion (float& e1, float& e2, float b) {
     float q, h;
@@ -48,6 +57,7 @@ grow_expansion (float& e1, float& e2, float b) {
 }
 
 
+FUNCTION_DECORATORS_HD
 inline void
 fast_expansion_sum (float& e1, float& e2, float f1, float f2) {
     float q,h;
@@ -64,16 +74,20 @@ fast_expansion_sum (float& e1, float& e2, float f1, float f2) {
 
 }
 
+template<typename T = float>
+FUNCTION_DECORATORS_HD
 inline void
-split (float a, float& a_hi, float& a_lo) {
-    float c, ab;
+split (T a, float& a_hi, float& a_lo) {
+    T c, ab;
 
+    constexpr unsigned long long int S = sizeof(T) * 4;
     c = ((1 << S) + 1) * a;
     ab = c - a;
-    a_hi = c - ab;
-    a_lo = a - a_hi;
+    a_hi = float(c - ab);
+    a_lo = float(a - a_hi);
 }
 
+FUNCTION_DECORATORS_HD
 inline void
 two_product (float a, float b, float&x, float& y) {
     float a_hi, a_lo, b_hi, b_lo, err1, err2;
@@ -91,6 +105,7 @@ two_product (float a, float b, float&x, float& y) {
 }
 
 // scale (e1,e2) by a
+FUNCTION_DECORATORS_HD
 inline void
 scale_expansion(float* e1, float* e2, float a) {
   float q,h,T,t;
@@ -102,6 +117,7 @@ scale_expansion(float* e1, float* e2, float a) {
   two_sum(T,q,*e1,*e2);
 }
 
+FUNCTION_DECORATORS_HD
 inline void
 daxpy (float *x1, float *x2, float a, float b) {
   scale_expansion(x1, x2, a);
@@ -110,6 +126,7 @@ daxpy (float *x1, float *x2, float a, float b) {
 
 // todo Add code for dot product, matvec, dgemm, rk4
 
+FUNCTION_DECORATORS_HD
 inline void exp_dot (float* a, float* b, unsigned int n, float& r1, float& r2) {
     float x=0.0, y=0.0;
     r1=0.0; r2=0.0;
@@ -121,6 +138,7 @@ inline void exp_dot (float* a, float* b, unsigned int n, float& r1, float& r2) {
 }
 
 template <typename T>
+FUNCTION_DECORATORS_HD
 inline T dot (T* a, T* b, int n) {
     T res = 0.0;
     for (int i = 0; i < n; ++i) {

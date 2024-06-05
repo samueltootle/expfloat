@@ -60,32 +60,6 @@ struct float2 {
 
 };
 
-// template<class storage_prec_t = float>
-// struct split {
-  
-//   template<class U = float>
-//   FUNCTION_DECORATORS_HD
-//   constexpr split(U a) : storage_(0.0,0.0), S(sizeof(U) * 4) {
-//     U c = ((1ul << S) + 1ul) * a;
-//     U ab = c - a;
-//     storage_.value = storage_prec_t(c - ab);
-//     storage_.remainder = storage_prec_t(a - storage_.value);
-//   }
-
-//   FUNCTION_DECORATORS_HD
-//   constexpr storage_prec_t value() const { return storage_.value; }
-  
-//   FUNCTION_DECORATORS_HD
-//   constexpr storage_prec_t remainder() const { return storage_.remainder; }
-
-//   FUNCTION_DECORATORS_HD
-//   constexpr float2<storage_prec_t> storage() const { return storage_; }
-  
-//   protected:
-//   float2<storage_prec_t> storage_;
-//   unsigned int S;
-// };
-
 template<class storage_prec_t = float, class input_t = float>
 FUNCTION_DECORATORS_HD
 constexpr float2<storage_prec_t> split(input_t const a) {

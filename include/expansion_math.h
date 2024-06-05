@@ -11,142 +11,250 @@
     #define FUNCTION_DECORATORS_HD
 #endif
 
+namespace expansion_math {
 // #define S 16
 
 // @brief computes the sum of two single precision floating point values and computes
 // their double precision sum in the expansion form
 
-FUNCTION_DECORATORS_HD
-inline void
-fast_two_sum(float a, float b, float& x, float& y) {
-    float v;
+// Paper: https://andrewthall.org/papers/df64_qf128.pdf
+// In principle float2<storage_prec_t> could be replaced by 
+// Float<storage_prec_t, N> where N are the number of values that need
+// to be stored
+template<class storage_prec_t = float>
+struct float2 {
+  FUNCTION_DECORATORS_HD
+  constexpr float2() : value(0.0), remainder(0.0) {} 
+  
+  FUNCTION_DECORATORS_HD
+  constexpr float2(storage_prec_t const & value_, storage_prec_t const & remainder_) 
+      : value(value_), remainder(remainder_) {}  
+  
+  FUNCTION_DECORATORS_HD
+  constexpr float2<storage_prec_t>& operator=(float2<storage_prec_t> const & o) {
+    if(this == &o)
+      return *this;
+    
+    value = o.value;
+    remainder = o.remainder;
+    return *this;
+  }
 
-    x = a+b;
-    if ((a>b) == (a>-b)) {
-        v  = x - a;
-        y = b - v;
-    } else {
-        v  = x - b;
-        y = a - v;
-    }
+  template<class cast_t = storage_prec_t>
+  FUNCTION_DECORATORS_HD
+  constexpr float2<storage_prec_t>& operator+=( float2<storage_prec_t> const & rhs) {
+    value += rhs.value;
+    remainder += rhs.remainder;
+    return *this;
+  }
+
+  template<class cast_t = storage_prec_t>
+  FUNCTION_DECORATORS_HD
+  friend constexpr float2<storage_prec_t> operator+( float2<storage_prec_t> lhs, float2<storage_prec_t> const & rhs) {
+    lhs += rhs;
+    return lhs;
+  }
+
+  storage_prec_t value;
+  storage_prec_t remainder;
+
+};
+
+// template<class storage_prec_t = float>
+// struct split {
+  
+//   template<class U = float>
+//   FUNCTION_DECORATORS_HD
+//   constexpr split(U a) : storage_(0.0,0.0), S(sizeof(U) * 4) {
+//     U c = ((1ul << S) + 1ul) * a;
+//     U ab = c - a;
+//     storage_.value = storage_prec_t(c - ab);
+//     storage_.remainder = storage_prec_t(a - storage_.value);
+//   }
+
+//   FUNCTION_DECORATORS_HD
+//   constexpr storage_prec_t value() const { return storage_.value; }
+  
+//   FUNCTION_DECORATORS_HD
+//   constexpr storage_prec_t remainder() const { return storage_.remainder; }
+
+//   FUNCTION_DECORATORS_HD
+//   constexpr float2<storage_prec_t> storage() const { return storage_; }
+  
+//   protected:
+//   float2<storage_prec_t> storage_;
+//   unsigned int S;
+// };
+
+template<class storage_prec_t = float, class input_t = float>
+FUNCTION_DECORATORS_HD
+constexpr float2<storage_prec_t> split(input_t const a) {
+  // FIXME verify UL is ok
+  constexpr unsigned int S = sizeof(storage_prec_t) * 4;
+  float2<storage_prec_t> res;
+  input_t c = ((1ul << S) + 1ul) * a;
+  input_t ab = c - a;
+  res.value = storage_prec_t(c - ab);
+  res.remainder = storage_prec_t(a - res.value);
+  return res;
 }
 
 FUNCTION_DECORATORS_HD
-inline void
-two_sum(float a, float b, float& x, float& y) {
-    float av, bv, ar, br;
+constexpr inline float2<float> fast_two_sum(float const a, float const b) {
+  float v = 0.0;
+  float2<float> result;
 
-    x = a+b;
-
-    bv = x - a;
-    av = x - bv;
-
-    br = b - bv;
-    ar = a - av;
-
-    y = ar+ br;
+  result.value = a+b;
+  if ((a>b) == (a>-b)) {
+      v  = result.value - a;
+      result.remainder = b - v;
+  } else {
+      v  = result.value - b;
+      result.remainder = a - v;
+  }
+  return result;
 }
 
 FUNCTION_DECORATORS_HD
-inline void
-grow_expansion (float& e1, float& e2, float b) {
-    float q, h;
+constexpr inline float2<float> two_sum(float const a, float const b) {
+  float2<float> result;
 
-    two_sum(b, e2, q, h);
-    two_sum(q, e1, e1, e2);
-}
+  result.value = a + b;
 
+  float bv = result.value - a;
+  float av = result.value - bv;
 
-FUNCTION_DECORATORS_HD
-inline void
-fast_expansion_sum (float& e1, float& e2, float f1, float f2) {
-    float q,h;
+  float br = b - bv;
+  float ar = a - av;
 
-    two_sum(f2, e2, q, h);
-    if (e1 < f1) { // want branch to fail
-        two_sum(q,e1,q,h);
-        two_sum(q,f1,e1,e2);
-    } else {
-        two_sum(q,f1,q,h);
-        two_sum(q,e1,e1,e2);
+  result.remainder = ar + br;
 
-    }
-
-}
-
-template<typename T = float>
-FUNCTION_DECORATORS_HD
-inline void
-split (T a, float& a_hi, float& a_lo) {
-    T c, ab;
-
-    constexpr unsigned long long int S = sizeof(T) * 4;
-    c = ((1 << S) + 1) * a;
-    ab = c - a;
-    a_hi = float(c - ab);
-    a_lo = float(a - a_hi);
+  return result;
 }
 
 FUNCTION_DECORATORS_HD
-inline void
-two_product (float a, float b, float&x, float& y) {
-    float a_hi, a_lo, b_hi, b_lo, err1, err2;
+constexpr inline float2<float> grow_expansion (float const val_, float const rem_, float b) {
+  float2<float> tmp_res = two_sum(b, rem_);
+  return two_sum(tmp_res.value, val_);
+}
 
-    x = a*b;
+FUNCTION_DECORATORS_HD
+constexpr inline float2<float> grow_expansion (float2<float> const in, float b) {
+  return grow_expansion(in.value, in.remainder, b);
+}
 
-    split (a, a_hi, a_lo);
-    split (b, b_hi, b_lo);
+// This is taken from df64_add from ref above
+FUNCTION_DECORATORS_HD
+constexpr inline float2<float> grow_expansion (float2<float> const in, float2<float> const b) {
+  // float2<float> tmp = grow_expansion(in.value, in.remainder, b.value);
+  // return grow_expansion(tmp, b.remainder);
+  float2<float> s = two_sum(in.value, b.value);
+  float2<float> t = two_sum(in.remainder, b.remainder);
+  s.remainder += t.value;
+  s = fast_two_sum(s.value, s.remainder);
+  s.remainder += t.remainder;
+  s = fast_two_sum(s.value, s.remainder);
+  return s;
+}
 
-    err1 = x - (a_hi * b_hi);
-    err2 = err1 - (a_lo * b_hi);
-    err1 = err2 - (a_hi * b_lo);
+FUNCTION_DECORATORS_HD
+constexpr inline float2<float> fast_expansion_sum (float const val_, float const rem_, float f1, float f2) {
+  float2<float> res;
+  float2<float> tmp_res = two_sum(f2, rem_);
+  if (val_ < f1) { // want branch to fail
+      tmp_res = two_sum(tmp_res.value, val_);
+      res     = two_sum(tmp_res.value, f1);
+  } else {
+      tmp_res = two_sum(tmp_res.value, f1);
+      res     = two_sum(tmp_res.value, val_);
+  }
+  return res;
+}
 
-    y = (a_lo * b_lo) - err1;
+FUNCTION_DECORATORS_HD
+constexpr inline float2<float> two_product (float const a, float const b) {
+
+  float2<float> res;
+  res.value = a * b;
+
+  float2<float> sa = split<float, float>(a);
+  float2<float> sb = split<float, float>(b);
+
+  float err1 = res.value - (sa.value * sb.value);
+  float err2 = err1 - (sa.remainder * sb.value);
+  err1 = err2 - (sa.value * sb.remainder);
+
+  res.remainder = (sa.remainder * sb.remainder) - err1;
+  return res;
 }
 
 // scale (e1,e2) by a
 FUNCTION_DECORATORS_HD
-inline void
-scale_expansion(float* e1, float* e2, float a) {
-  float q,h,T,t;
+constexpr inline float2<float> scale_expansion(float const val_, float const rem_, float const a) {
+  float2<float> tmp_res1 = two_product(rem_, a);
+  float2<float> tmp_res2 = two_product(val_, a);
+  
+  tmp_res1 = two_sum(tmp_res1.value, tmp_res2.remainder);
+  return two_sum(tmp_res1.value, tmp_res2.value);
+}
 
-  two_product(*e2, a, q, h);
-  two_product(*e1, a, T,t);
-
-  two_sum(q,t,q,h);
-  two_sum(T,q,*e1,*e2);
+// scale (e1,e2) by a
+FUNCTION_DECORATORS_HD
+constexpr inline float2<float> scale_expansion(float2<float> in, float const a) {
+  return scale_expansion(in.value, in.remainder, a);
 }
 
 FUNCTION_DECORATORS_HD
-inline void
-daxpy (float *x1, float *x2, float a, float b) {
-  scale_expansion(x1, x2, a);
-  grow_expansion(*x1, *x2, b);
+constexpr inline float2<float> scale_expansion(float2<float> in, float2<float> const scale_factor) {
+  return grow_expansion(scale_expansion(in, scale_factor.value),scale_expansion(in, scale_factor.remainder));
+}
+
+FUNCTION_DECORATORS_HD
+constexpr inline float2<float> daxpy (float const val_, float const rem_, float scale_factor, float grow_factor) {
+  float2<float> tmp_res = scale_expansion(val_, rem_, scale_factor);
+  return grow_expansion(tmp_res.value, tmp_res.remainder, grow_factor);
+}
+
+// Take a given float2, cast the stored value and remainder to cast_t
+// before adding them together.
+template<class cast_t, class float2_t>
+FUNCTION_DECORATORS_HD
+constexpr cast_t float2_sum(float2_t& f) {
+  return static_cast<cast_t>(f.value) + static_cast<cast_t>(f.remainder);
+}
+
+// For an arbitrary input list of float2 arguments,
+// recast and sum their components using float2_sum
+// and sum them all together.
+template<class cast_t, class... floats_t>
+FUNCTION_DECORATORS_HD
+constexpr cast_t recast_sum(floats_t... input) {
+  return (float2_sum<cast_t>(input) + ...);
 }
 
 // todo Add code for dot product, matvec, dgemm, rk4
 
-FUNCTION_DECORATORS_HD
-inline void exp_dot (float* a, float* b, unsigned int n, float& r1, float& r2) {
-    float x=0.0, y=0.0;
-    r1=0.0; r2=0.0;
-    for (int i = 0; i < n; ++i) {
-        // two_product(a[i], b[i], x, y);
-        // fast_expansion_sum(r1, r2, x, y);
-        grow_expansion(r1, r2, a[i]*b[i]);
-    }
+// FUNCTION_DECORATORS_HD
+// inline void exp_dot (float* a, float* b, unsigned int n, float& r1, float& r2) {
+//     float x=0.0, y=0.0;
+//     r1=0.0; r2=0.0;
+//     for (int i = 0; i < n; ++i) {
+//         // two_product(a[i], b[i], x, y);
+//         // fast_expansion_sum(r1, r2, x, y);
+//         grow_expansion(r1, r2, a[i]*b[i]);
+//     }
+// }
+
+// template <typename T>
+// FUNCTION_DECORATORS_HD
+// inline T dot (T* a, T* b, int n) {
+//     T res = 0.0;
+//     for (int i = 0; i < n; ++i) {
+//         res += a[i]*b[i];
+//     }
+//     return res;
+// }
+
 }
-
-template <typename T>
-FUNCTION_DECORATORS_HD
-inline T dot (T* a, T* b, int n) {
-    T res = 0.0;
-    for (int i = 0; i < n; ++i) {
-        res += a[i]*b[i];
-    }
-    return res;
-}
-
-
 
 #endif //EXPFLOAT_EXPANSION_MATH_H

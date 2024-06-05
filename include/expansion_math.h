@@ -117,11 +117,9 @@ constexpr inline float2<float> grow_expansion (float2<float> const in, float b) 
   return grow_expansion(in.value, in.remainder, b);
 }
 
-// This is taken from df64_add from ref above
+// Implementation of df64_add from ref above
 FUNCTION_DECORATORS_HD
 constexpr inline float2<float> grow_expansion (float2<float> const in, float2<float> const b) {
-  // float2<float> tmp = grow_expansion(in.value, in.remainder, b.value);
-  // return grow_expansion(tmp, b.remainder);
   float2<float> s = two_sum(in.value, b.value);
   float2<float> t = two_sum(in.remainder, b.remainder);
   s.remainder += t.value;
@@ -172,15 +170,36 @@ constexpr inline float2<float> scale_expansion(float const val_, float const rem
   return two_sum(tmp_res1.value, tmp_res2.value);
 }
 
+// Implementation of df64_prod from ref above
+FUNCTION_DECORATORS_HD
+constexpr inline float2<float> scale_expansion(float2<float> in, float2<float> const a) {
+  float2<float> p = two_product(in.value, a.value);
+  p.remainder += in.value * a.remainder;
+  p.remainder += in.remainder * a.value;
+  p = fast_two_sum(p.value, p.remainder);
+  return p;
+}
+
+// Implementation of df64_div from ref above
+FUNCTION_DECORATORS_HD
+constexpr inline float2<float> division_expansion(float2<float> numerator, float2<float> const denominator) {
+  // FIXME need to throw if denominator is zero
+  float xn = 1.0f / denominator.value;
+  float2<float> yn(numerator.value * xn, 0.0f);
+  float diff = 0.0;
+  {
+    float2<float> tmp = scale_expansion(denominator, yn);
+    diff = grow_expansion(numerator, float2<float>(-tmp.value, -tmp.remainder)).value;
+  }
+
+  float2<float> p = two_product(xn, diff);
+  return grow_expansion(yn, p);
+}
+
 // scale (e1,e2) by a
 FUNCTION_DECORATORS_HD
 constexpr inline float2<float> scale_expansion(float2<float> in, float const a) {
   return scale_expansion(in.value, in.remainder, a);
-}
-
-FUNCTION_DECORATORS_HD
-constexpr inline float2<float> scale_expansion(float2<float> in, float2<float> const scale_factor) {
-  return grow_expansion(scale_expansion(in, scale_factor.value),scale_expansion(in, scale_factor.remainder));
 }
 
 FUNCTION_DECORATORS_HD

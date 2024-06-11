@@ -46,10 +46,21 @@ static inline void TEST_64bit_division() {
   static_assert(std::abs(1. - expansion_math::recast_sum<double>(res) / (res_d)) <= 1e-14);
 }
 
+static inline void TEST_negative_float2() {
+  static constexpr double a = 1.0 / 6.0;
+  static constexpr double res_d = -1.0 / 6.0;
+  static constexpr expansion_math::float2<float> sa = expansion_math::split<float>(a);
+  static constexpr expansion_math::float2<float> res = -sa;
+
+  static_assert(std::abs(1. - expansion_math::recast_sum<double>(res) / (res_d)) <= 1e-14);
+ 
+}
+
 int main() {
   TEST_64bit_product();
   TEST_64bit_sum();
   TEST_64bit_division();
+  TEST_negative_float2();
 
   return 0;
 }

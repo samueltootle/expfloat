@@ -40,7 +40,6 @@ struct float2 {
     return *this;
   }
 
-  template<class cast_t = storage_prec_t>
   FUNCTION_DECORATORS_HD
   constexpr float2<storage_prec_t>& operator+=( float2<storage_prec_t> const & rhs) {
     value += rhs.value;
@@ -48,10 +47,28 @@ struct float2 {
     return *this;
   }
 
-  template<class cast_t = storage_prec_t>
+  FUNCTION_DECORATORS_HD
+  constexpr float2<storage_prec_t>& operator-=( float2<storage_prec_t> const & rhs) {
+    value -= rhs.value;
+    remainder -= rhs.remainder;
+    return *this;
+  }
+
   FUNCTION_DECORATORS_HD
   friend constexpr float2<storage_prec_t> operator+( float2<storage_prec_t> lhs, float2<storage_prec_t> const & rhs) {
     lhs += rhs;
+    return lhs;
+  }
+
+  FUNCTION_DECORATORS_HD
+  friend constexpr float2<storage_prec_t> operator-( float2<storage_prec_t> lhs, float2<storage_prec_t> const & rhs) {
+    lhs -= rhs;
+    return lhs;
+  }
+
+  FUNCTION_DECORATORS_HD
+  friend constexpr float2<storage_prec_t> operator-(float2<storage_prec_t> const & rhs) {
+    float2<storage_prec_t> lhs(-rhs.value, -rhs.remainder);
     return lhs;
   }
 

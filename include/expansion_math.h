@@ -71,6 +71,12 @@ constexpr inline float2<float> scale_expansion(float2<float> in, float const a);
 FUNCTION_DECORATORS_HD
 constexpr inline float2<float> daxpy (float const val_, float const rem_, float scale_factor, float grow_factor);
 
+FUNCTION_DECORATORS_HD
+constexpr inline float2<float> exp_TAYLOR(float2<float> x);
+
+FUNCTION_DECORATORS_HD
+constexpr inline float2<float> sqrt_expansion(float2<float> x);
+
 // Take a given float2, cast the stored value and remainder to cast_t
 // before adding them together.
 template<class cast_t, class float2_t>

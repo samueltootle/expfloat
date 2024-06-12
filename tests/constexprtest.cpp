@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include "../include/expansion_math.h"
 
-constexpr static inline void TEST_64bit_product() {
+static inline void TEST_64bit_product() {
   constexpr double a = 1.0 / 6.0;
   constexpr double b = 3.0e-6;
   constexpr double c = M_PI;
@@ -52,11 +52,30 @@ static inline void TEST_negative_float2() {
   static_assert(std::abs(1. - expansion_math::recast_sum<double>(res) / (res_d)) <= 1e-13);
 }
 
-int main() {
-  TEST_64bit_product();
-  TEST_64bit_sum();
-  TEST_64bit_division();
-  TEST_negative_float2();
+static inline void TEST_64bit_pow() {
+  static constexpr double a = M_PI;
+  static constexpr double res_d = std::pow(a, 5);
+  static constexpr expansion_math::float2<float> sa = expansion_math::split<float>(a);
+  static constexpr expansion_math::float2<float> res = expansion_math::pow_expansion(sa, 5);
+  static_assert(std::abs(1. - expansion_math::recast_sum<double>(res) / (res_d)) <= 1e-12);
+}
 
+static inline void TEST_64bit_sqrt() {
+  static constexpr double a = 1.0 / M_PI;
+  static constexpr double res_d = std::sqrt(a);
+  static constexpr expansion_math::float2<float> sa = expansion_math::split<float>(a);
+  static constexpr expansion_math::float2<float> res = expansion_math::sqrt_expansion(sa);
+  static_assert(std::abs(1. - expansion_math::recast_sum<double>(res) / (res_d)) <= 1e-12);
+}
+
+static inline void TEST_64bit_exp() {
+  static constexpr double a = 1.0 / M_PI;
+  static constexpr double res_d = std::exp(a);
+  static constexpr expansion_math::float2<float> sa = expansion_math::split<float>(a);
+  static constexpr expansion_math::float2<float> res = expansion_math::exp_TAYLOR(sa);
+  static_assert(std::abs(1. - expansion_math::recast_sum<double>(res) / (res_d)) <= 1e-12);
+}
+
+int main() {
   return 0;
 }

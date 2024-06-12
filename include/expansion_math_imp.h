@@ -50,6 +50,28 @@ struct MY_ALIGN(sizeof(storage_prec_t) * 2U) float2 {
   friend constexpr float2<storage_prec_t> operator+( float2<storage_prec_t> const & lhs, float2<storage_prec_t> const & rhs) {
     return grow_expansion(lhs, rhs);
   }
+
+  FUNCTION_DECORATORS_HD
+  friend constexpr float2<storage_prec_t> operator+( float const & c, float2<storage_prec_t> const & rhs) {
+    float2<storage_prec_t> lhs(c, 0);
+    return lhs + rhs;
+  }
+
+  FUNCTION_DECORATORS_HD
+  friend constexpr float2<storage_prec_t> operator+( float2<storage_prec_t> const & lhs, float const & c) {
+    return c + lhs;
+  }
+
+  FUNCTION_DECORATORS_HD
+  friend constexpr float2<storage_prec_t> operator+( double const & c, float2<storage_prec_t> const & rhs) {
+    float2<storage_prec_t> lhs = split<float, double>(c);
+    return lhs + rhs;
+  }
+
+  FUNCTION_DECORATORS_HD
+  friend constexpr float2<storage_prec_t> operator+( float2<storage_prec_t> const & lhs, double const & c) {
+    return c + lhs;
+  }
   
   FUNCTION_DECORATORS_HD
   friend constexpr float2<storage_prec_t> operator-(float2<storage_prec_t> const & rhs) {
@@ -91,6 +113,14 @@ struct MY_ALIGN(sizeof(storage_prec_t) * 2U) float2 {
   template<class T>
   FUNCTION_DECORATORS_HD
   friend constexpr float2<storage_prec_t> operator*(T const & p1_, float2<storage_prec_t> p2) = delete;
+
+  template<class T>
+  FUNCTION_DECORATORS_HD
+  friend constexpr float2<storage_prec_t> operator+( float2<storage_prec_t> p1, T const & p2_) = delete;
+
+  template<class T>
+  FUNCTION_DECORATORS_HD
+  friend constexpr float2<storage_prec_t> operator+(T const & p1_, float2<storage_prec_t> p2) = delete;
   // END deletion of implicit conversions
 
   // Stored values
@@ -244,6 +274,7 @@ constexpr inline float2<float> pow_expansion(float2<float> var, const int exp) {
   } else if(exp == 1) {
     res = var;
   } else {
+    res = var;
     for(int p = 2; p <= exp; ++p) {
       res = scale_expansion(res, var);
     }
@@ -261,6 +292,38 @@ FUNCTION_DECORATORS_HD
 constexpr inline float2<float> daxpy (float const val_, float const rem_, float scale_factor, float grow_factor) {
   float2<float> tmp_res = scale_expansion(val_, rem_, scale_factor);
   return grow_expansion(tmp_res.value, tmp_res.remainder, grow_factor);
+}
+
+FUNCTION_DECORATORS_HD
+constexpr inline float2<float> sqrt_expansion(float2<float> x) {
+  float xn = 1.0 / std::sqrt(x.value);
+  float2<float> yn(x.value * xn, 0.0);
+  float2<float> ynsq = pow_expansion(yn, 2);
+
+  float diff = (x - ynsq).value;
+  float2<float> prod = two_product(xn, diff) / float2<float>(2.0, 0.0);
+
+  return yn + prod;
+}
+
+// computes e^x using taylor expansion form - see ref, Fig 3
+FUNCTION_DECORATORS_HD
+constexpr inline float2<float> exp_TAYLOR(float2<float> x) {
+  const float thresh = 1.0e-20 * std::exp(x.value);
+  float2<float> s = float2<float>(1.0f, 0) + x;
+  float2<float> p = x * x;
+  float m = 2.0f;
+  float2<float> f = float2<float>(2.0f, 0);
+  float2<float> t = p / f;
+
+  while(std::fabs(t.value) > thresh) {
+    s = s + t;
+    p = p * x;
+    m += 1.0f;
+    f = f * float2<float>(m, 0.0f);
+    t = p / f;
+  }
+  return s + t;
 }
 
 // Take a given float2, cast the stored value and remainder to cast_t
